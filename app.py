@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 import logging
 import dash
 import dash_core_components as dcc
