@@ -1,29 +1,23 @@
-#!/usr/bin/env python
 import logging
 import dash
 import dash_core_components as dcc
 import dash_html_components as html
 import plotly.express as px
 import plotly.graph_objects as go
-import pandas as pd
 from urllib.parse import parse_qs
-from processors.experiment import concat_experiments, Experiment
+from numpy import dstack
+from processors.database import Database, Config
+from processors.experiment import concat_experiments
 
-url_basename = '/'
+url_basename = '/traces/'
 app = dash.Dash(__name__, url_base_pathname = url_basename)
 server = app.server
+db = Database(Config())
 
 channel_dict = {
     '2475ChA ex280/em350': 'Trp',
     '2475ChB ex488/em509': 'GFP'
 }
-
-hplc_data = pd.read_csv('data/hplc.csv')
-fplc_data = pd.read_csv('data/fplc.csv')
-
-example_exp = Experiment('example')
-example_exp.hplc = hplc_data
-example_exp.fplc = fplc_data
 
 def get_hplc_graphs(exp, view_range = None):
     exp.rename_channels(channel_dict)
@@ -93,6 +87,8 @@ def get_fplc_graphs(exp):
                 y = fplc['Value'],
                 mode = 'lines',
                 showlegend = False,
+                hovertemplate = 'mAU: %{y}<br>Volume: %{x}<br>Fraction: %{text}',
+                text = fplc['Fraction'],
                 line = {'color': 'black'}
             )
         )
@@ -104,6 +100,7 @@ def get_fplc_graphs(exp):
             y = 'Value',
             color = 'Sample',
             facet_row = 'Normalization',
+            hover_data = ['Value', 'mL', 'Fraction'],
             template = 'plotly_white'
         )
         try:
@@ -112,6 +109,7 @@ def get_fplc_graphs(exp):
             pass
         # remove 'Channel=' from the facet labels
         fplc_graph.for_each_annotation(lambda a: a.update(text=a.text.split("=")[-1]))
+
 
     fplc_graph.update_layout(template = 'plotly_white')
     fplc_graph.for_each_annotation(lambda a: a.update(text=a.text.split("=")[-1]))
@@ -213,7 +211,7 @@ def serve_layout():
                         children =
                         [dcc.Dropdown(
                             id = 'experiment_dropdown',
-                            options = [{'label': 'example', 'value': 'example'}],
+                            options = [{'label': x, 'value': x} for x in db.update_experiment_list()],
                             multi = True
                         )]
                     ),
@@ -275,9 +273,9 @@ def update_output(pathname, search_string, n_clicks, reset):
     if changed == 'root-location.search' or changed is None:
         raise dash.exceptions.PreventUpdate
 
-    if pathname != '/':
+    if pathname != '':
         
-        path_string = pathname.replace('/','')
+        path_string = pathname.replace('/traces/', '')
         experiment_name_list = path_string.split('+')
         
         norm_range, view_range = parse_query(search_string)
@@ -286,9 +284,10 @@ def update_output(pathname, search_string, n_clicks, reset):
             norm_range = view_range
 
         if len(experiment_name_list) == 1:
-            exp = example_exp
+            exp = db.pull_experiment(experiment_name_list[0])
         else:
-            return
+            exp_list = [db.pull_experiment(x) for x in experiment_name_list]
+            exp = concat_experiments(exp_list)
 
         if norm_range is not None:
             exp.renormalize_hplc(norm_range, False)
