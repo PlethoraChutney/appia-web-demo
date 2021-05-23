@@ -6,13 +6,16 @@ import plotly.express as px
 import plotly.graph_objects as go
 from urllib.parse import parse_qs
 from numpy import dstack
+from pandas import read_csv
 from processors.database import Database, Config
-from processors.experiment import concat_experiments
+from processors.experiment import Experiment, concat_experiments
 
 url_basename = '/traces/'
 app = dash.Dash(__name__, url_base_pathname = url_basename)
 server = app.server
-db = Database(Config())
+test_exp = Experiment('Example')
+test_exp.hplc = read_csv('data/hplc.csv')
+test_exp.fplc = read_csv('data/fplc.csv')
 
 channel_dict = {
     '2475ChA ex280/em350': 'Trp',
@@ -211,7 +214,7 @@ def serve_layout():
                         children =
                         [dcc.Dropdown(
                             id = 'experiment_dropdown',
-                            options = [{'label': x, 'value': x} for x in db.update_experiment_list()],
+                            options = [{'label': 'Example', 'value': 'Example'}],
                             multi = True
                         )]
                     ),
@@ -284,10 +287,8 @@ def update_output(pathname, search_string, n_clicks, reset):
             norm_range = view_range
 
         if len(experiment_name_list) == 1:
-            exp = db.pull_experiment(experiment_name_list[0])
-        else:
-            exp_list = [db.pull_experiment(x) for x in experiment_name_list]
-            exp = concat_experiments(exp_list)
+            if experiment_name_list[0] == 'Example':
+                exp = test_exp
 
         if norm_range is not None:
             exp.renormalize_hplc(norm_range, False)
