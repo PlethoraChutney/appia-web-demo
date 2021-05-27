@@ -10,12 +10,16 @@ from pandas import read_csv
 from processors.database import Database, Config
 from processors.experiment import Experiment, concat_experiments
 
-url_basename = '/traces/'
+url_basename = '/'
 app = dash.Dash(__name__, url_base_pathname = url_basename)
 server = app.server
 test_exp = Experiment('Example')
 test_exp.hplc = read_csv('data/hplc.csv')
 test_exp.fplc = read_csv('data/fplc.csv')
+
+test_exp2 = Experiment('Example_2')
+test_exp2.hplc = read_csv('data/hplc2.csv')
+test_exp2.fplc = read_csv('data/fplc2.csv')
 
 channel_dict = {
     '2475ChA ex280/em350': 'Trp',
@@ -214,7 +218,7 @@ def serve_layout():
                         children =
                         [dcc.Dropdown(
                             id = 'experiment_dropdown',
-                            options = [{'label': 'Example', 'value': 'Example'}],
+                            options = [{'label': 'Example_1', 'value': 'Example_1'}, {'label': 'Example_2', 'value': 'Example_2'}],
                             multi = True
                         )]
                     ),
@@ -278,17 +282,21 @@ def update_output(pathname, search_string, n_clicks, reset):
 
     if pathname != '':
         
-        path_string = pathname.replace('/traces/', '')
+        path_string = pathname.replace('/', '')
         experiment_name_list = path_string.split('+')
         
         norm_range, view_range = parse_query(search_string)
 
         if changed == 'renorm-hplc.n_clicks':
             norm_range = view_range
-
+        
         if len(experiment_name_list) == 1:
-            if experiment_name_list[0] == 'Example':
+            if experiment_name_list[0] == 'Example_1':
                 exp = test_exp
+            elif experiment_name_list[0] == 'Example_2':
+                exp = test_exp2
+        elif 'Example_1' in experiment_name_list and 'Example_2' in experiment_name_list:
+            exp = concat_experiments([test_exp, test_exp2])
 
         if norm_range is not None:
             exp.renormalize_hplc(norm_range, False)
