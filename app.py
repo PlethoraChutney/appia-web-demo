@@ -316,6 +316,8 @@ def update_output(pathname, search_string, radio_value, n_clicks, reset):
 
         if norm_range is not None:
             exp.renormalize_hplc(norm_range, False)
+        else:
+            exp.renormalize_hplc([0,1000], False)
         
         return get_plotly(exp, view_range, radio_value)
 
@@ -330,12 +332,13 @@ def update_output(pathname, search_string, radio_value, n_clicks, reset):
 )
 def refresh_xrange(relayout_data, search_string, n_clicks, reset):
     changed = [p['prop_id'] for p in dash.callback_context.triggered][0]
+    print(changed)
 
     if relayout_data == None or changed == 'root-location.search':
         raise dash.exceptions.PreventUpdate
         
     if changed == 'reset-hplc.n_clicks':
-        return ''
+        return '?'
     
 
     try:
