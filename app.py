@@ -341,16 +341,19 @@ def update_output(pathname, search_string, radio_value, n_clicks, reset):
         dash.dependencies.Input('reset-hplc', 'n_clicks')
     ]
 )
-def refresh_xrange(relayout_data, search_string, n_clicks, reset):
+def refresh_xrange(relayout_data, search_string, renorm, reset):
     changed = [p['prop_id'] for p in dash.callback_context.triggered][0]
     print(changed)
 
-    if relayout_data == None or changed == 'root-location.search':
-        raise dash.exceptions.PreventUpdate
-        
+    norm_range, view_range = parse_query(search_string)
+
     if changed == 'reset-hplc.n_clicks':
-        return '?norm-range='
-    
+        print('Reset')
+        return f'?view-range={view_range[0]}-{view_range[1]}'
+
+    if relayout_data == None or changed == 'root-location.search':
+        print('Block')
+        raise dash.exceptions.PreventUpdate    
 
     try:
         data = [relayout_data['xaxis.range[0]'], relayout_data['xaxis.range[1]']]
@@ -360,8 +363,6 @@ def refresh_xrange(relayout_data, search_string, n_clicks, reset):
                 data = None
         except KeyError:
             raise dash.exceptions.PreventUpdate
-
-    norm_range, view_range = parse_query(search_string)
 
     new_q_string = '?'
 
