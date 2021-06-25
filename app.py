@@ -327,13 +327,15 @@ def update_output(pathname, search_string, radio_value, renorm, reset_norm, rese
         if changed == 'renorm-hplc.n_clicks':
             norm_range = view_range
         
- 
-        exp_list = []
-        for exp_name in experiment_name_list:
-            if exp_name in exp_dict.keys():
-                exp_list.append(exp_dict[exp_name])
+        if len(experiment_name_list) == 1 and experiment_name_list[0] in exp_dict.keys():
+            exp = exp_dict[experiment_name_list[0]]
+        elif len(experiment_name_list) > 1:
+            exp_list = []
+            for exp_name in experiment_name_list:
+                if exp_name in exp_dict.keys():
+                    exp_list.append(exp_dict[exp_name])
 
-        exp = concat_experiments(exp_list)
+            exp = concat_experiments(exp_list)
 
         if norm_range is not None:
             exp.renormalize_hplc(norm_range, False)
