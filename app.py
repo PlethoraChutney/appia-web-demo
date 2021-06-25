@@ -13,13 +13,22 @@ from processors.experiment import Experiment, concat_experiments
 url_basename = '/'
 app = dash.Dash(__name__, url_base_pathname = url_basename)
 server = app.server
-test_exp = Experiment('Example')
-test_exp.hplc = read_csv('data/hplc.csv')
-test_exp.fplc = read_csv('data/fplc.csv')
+hplc_one = Experiment('HPLC Example 1')
+hplc_two = Experiment('HPLC Example 2')
+fplc_one = Experiment('FPLC Example 1')
+fplc_two = Experiment('FPLC Example 2')
 
-test_exp2 = Experiment('Example_2')
-test_exp2.hplc = read_csv('data/hplc2.csv')
-test_exp2.fplc = read_csv('data/fplc2.csv')
+hplc_one.hplc = read_csv('data/hplc.csv')
+hplc_two.hplc = read_csv('data/hplc2.csv')
+fplc_one.fplc = read_csv('data/fplc.csv')
+fplc_two.fplc = read_csv('data/fplc2.csv')
+
+exp_dict = {
+    'HPLC_Example_1': hplc_one,
+    'HPLC_Example_2': hplc_two,
+    'FPLC_Example_1': fplc_one,
+    'FPLC_Example_2': fplc_two
+}
 
 channel_dict = {
     '2475ChA ex280/em350': 'Trp',
@@ -222,7 +231,9 @@ def serve_layout():
                         children =
                         [dcc.Dropdown(
                             id = 'experiment_dropdown',
-                            options = [{'label': 'Example_1', 'value': 'Example_1'}, {'label': 'Example_2', 'value': 'Example_2'}],
+                            options = [
+                                {'label': x, 'value': x} for x in exp_dict.keys()
+                                ],
                             multi = True
                         )]
                     ),
@@ -306,13 +317,13 @@ def update_output(pathname, search_string, radio_value, n_clicks, reset):
         if changed == 'renorm-hplc.n_clicks':
             norm_range = view_range
         
-        if len(experiment_name_list) == 1:
-            if experiment_name_list[0] == 'Example_1':
-                exp = test_exp
-            elif experiment_name_list[0] == 'Example_2':
-                exp = test_exp2
-        elif 'Example_1' in experiment_name_list and 'Example_2' in experiment_name_list:
-            exp = concat_experiments([test_exp, test_exp2])
+ 
+        exp_list = []
+        for exp_name in experiment_name_list:
+            if exp_name in exp_dict.keys():
+                exp_list.append(exp_dict[exp_name])
+
+        exp = concat_experiments(exp_list)
 
         if norm_range is not None:
             exp.renormalize_hplc(norm_range, False)
@@ -338,7 +349,7 @@ def refresh_xrange(relayout_data, search_string, n_clicks, reset):
         raise dash.exceptions.PreventUpdate
         
     if changed == 'reset-hplc.n_clicks':
-        return '?'
+        return '?norm-range='
     
 
     try:
